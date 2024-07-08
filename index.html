@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Maya</title>
+    <meta charset="utf-8"/>
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <link type="text/css" rel="stylesheet" href="css/main.css"/>
+
+
+</head>
+<body>
+<text>
+    Maya<br/><br/>
+</text>
+
+
+<script type="module">
+    import * as THREE from "./libs/three.module.js";
+    import {ARButton} from "./libs/ARButton.js";
+    import {GLTFLoader} from "./libs/GLTFLoader.js";
+    import {AnimationIndex} from "./helper.js";
+    import {RGBELoader} from "./libs/RGBELoader.js";
+
+    let container;
+    let camera, scene, renderer;
+    let controller;
+    let clock = new THREE.Clock();
+    let gltfScene, reticle, pivot,
+        model, audioSound,
+        modelShowed = false;
+    let mixer, action;
+
+
+    let hitTestSource = null;
+    let hitTestSourceRequested = false;
+
+    const assetPath = 'resources';
+    window.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        //alert(event.touches[0].clientX + ' ' + event.touches[0].clientY);
+        setPickPosition(event.touches[0]);
+    });
+
+    function addDetails() {
+        // Load environment map
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
+        pmremGenerator.compileEquirectangularShader();
+
+        new RGBELoader()
+            .setDataType(THREE.UnsignedByteType)
+            .setPath(assetPath + '/environment/')
+            .load('mowInTheBarn.hdr', function (texture) {
+                scene.environment = pmremGenerator.fromEquirectangular(texture).texture;
+                texture.dispose();
+                pmremGenerator.dispose();
+            });
+
+
+        model.traverse(child => {
+            if (child.isMesh) {
+                child.material.envMap = scene.environment;
+                child.material.needsUpdate = true;
+
+                if (child.name === 'maya_shoe_geo_old') {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            }
+        });
+
+
+
+        // Assuming your floor is a PlaneGeometry and stored in a variable floor
+        const floorGeometry = new THREE.PlaneGeometry(200, 200);
+        const floorMaterial = new THREE.ShadowMaterial({ opacity: 0.2 });
+
+        let floor = new THREE.Mesh(floorGeometry, floorMaterial);
+
+
+        floor.position.setFromMatrixPosition(reticle.matrix);
+
+        floor.receiveShadow = true; // Allow floor to receive shadows
+
+        scene.add(floor);
+    }
+
+    init();
+
+    function loadModel() {
+        if (!model) {
+            return;
+        }
+
+        model.position.setFromMatrixPosition(reticle.matrix);
+
+
+        //model.position.set(0, -1, -6);
+        addDetails();
+        scene.add(model);
+        console.log(model);
+
+        pivot = new THREE.Object3D();
+        pivot.position.copy(model.position);
+        pivot.updateMatrix();
+        scene.add(pivot);
+        pivot.attach(model);
+    }
+
+    function loadAudio(path) {
+        let listener = new THREE.AudioListener();
+        camera.add(listener);
+
+        let sound = new THREE.Audio(listener);
+
+        const audioLoader = new THREE.AudioLoader();
+        audioLoader.load(path,
+            function (buffer) {
+                sound.setBuffer(buffer);
+                sound.setLoop(false);
+                sound.setVolume(0.5);
+                audioSound = sound;
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+            },
+            (error) => {
+                console.log(error);
+            }
+        );
+    }
+
+    async function getModel(path) {
+        const loader = new GLTFLoader();
+
+        await loader.load(path,
+            (gltf) => {
+                gltfScene = gltf;
+                model = gltf.scene.children[0];
+
+                model.scale.x = 0.005;
+                model.scale.x = 0.005;
+                model.scale.x = 0.005;
+                model.children[0].traverse(child => {
+                    // if (child.geometry) {
+                    //     let box = new THREE.Box3();
+                    //     for (let i = 0; i < child.geometry.attributes.position.count; i += 3) {
+                    //         box.expandByPoint(new THREE.Vector3(child.geometry.attributes.position[i],
+                    //             child.geometry.attributes.position[i + 1],
+                    //             child.geometry.attributes.position[i + 2]))
+                    //     }
+                    //
+                    //     child.geometry.boundingBox = box;
+                    //     box.getBoundingSphere(child.geometry.boundingSphere);
+                    // }
+
+                    child.frustumCulled = false;
+                });
+
+                console.log(gltf);
+                mixer = new THREE.AnimationMixer(model);
+                action = mixer.clipAction(gltf.animations[AnimationIndex.EVENT01]);
+                action.clampWhenFinished = true;
+                action.setLoop(THREE.LoopOnce);
+                action.play();
+
+                //loadModel();
+
+                //createPlanes();
+
+            },
+            (xhr) => {
+                console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+            },
+            (error) => {
+                console.log(error);
+            }
+        );
+    }
+
+    function getMarker() {
+        const marker = new THREE.Mesh(
+            new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
+            new THREE.MeshBasicMaterial()
+        );
+        marker.matrixAutoUpdate = false;
+        marker.visible = false;
+        return marker;
+    }
+
+    function createPlanes() {
+        const geometry = new THREE.PlaneGeometry(1, 1);
+        const material = new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide});
+        const plane = new THREE.Mesh(geometry, material);
+        plane.position.x = -3;
+        plane.position.y = -4;
+        plane.position.z = -10;
+        camera.add(plane);
+        //alert('planeCreated');
+
+    }
+
+    function playAnimation(index) {
+        if (action) {
+            action.reset();
+        }
+        action = mixer.clipAction(gltfScene.animations[index]);
+        action.clampWhenFinished = true;
+        action.setLoop(THREE.LoopOnce);
+        action.play();
+    }
+
+    function init() {
+        container = document.createElement("div");
+        document.body.appendChild(container);
+
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera(
+            70,
+            window.innerWidth / window.innerHeight,
+            0.001,
+            200
+        );
+
+        scene.add(camera);
+
+        const light = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(light);
+
+
+        const hlight = new THREE.DirectionalLight(0xffffff, 1);
+        hlight.position.set(10, 10, 10);
+        hlight.castShadow = true;
+        hlight.shadow.mapSize.width = 1024;
+        hlight.shadow.mapSize.height = 1024;
+        hlight.shadow.camera.near = 0.5;
+        hlight.shadow.camera.far = 500;
+        hlight.shadow.camera.left = -10;
+        hlight.shadow.camera.right = 10;
+        hlight.shadow.camera.top = 10;
+        hlight.shadow.camera.bottom = -10;
+
+        scene.add(hlight);
+
+        getModel(assetPath + '/' + 'maya_sq_01_03.glb');
+
+        loadAudio(assetPath + '/' + 'event01.wav');
+
+        //
+
+        renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setAnimationLoop(animate);
+        renderer.xr.enabled = true;
+        container.appendChild(renderer.domElement);
+
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        //
+
+        document.body.appendChild(
+            ARButton.createButton(renderer, {requiredFeatures: ["hit-test"]})
+        );
+
+        //
+
+        function onSelect() {
+            if (reticle.visible) {
+                loadModel();
+                reticle.visible = false;
+                modelShowed = true;
+            }
+        }
+
+        controller = renderer.xr.getController(0);
+        controller.addEventListener("select", onSelect);
+        scene.add(controller);
+
+        reticle = getMarker();
+        scene.add(reticle);
+
+        window.addEventListener("resize", onWindowResize);
+    }
+
+    function setPickPosition(event) {
+        let pickPosition = new THREE.Vector2();
+        pickPosition.x = (event.clientX / window.innerWidth) * 2 - 1;
+        pickPosition.y = (event.clientY / window.innerHeight) * -2 + 1; // note we flip Y
+
+        let raycaster = new THREE.Raycaster();
+
+        raycaster.setFromCamera(pickPosition, camera);
+        const intersects = raycaster.intersectObjects(scene.children, true);
+
+        if (intersects.length > 0) {
+            playAnimation(AnimationIndex.EVENT01);
+
+            audioSound.setLoop(false);
+            audioSound.play();
+        }
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function animate(timestamp, frame) {
+        if (frame) {
+            let session, referenceSpace;
+            try {
+                referenceSpace = renderer.xr.getReferenceSpace();
+                session = renderer.xr.getSession();
+            } catch (error) {
+                alert(error);
+            }
+
+            if (hitTestSourceRequested === false) {
+                session
+                    .requestReferenceSpace("viewer")
+                    .then(function (referenceSpace) {
+                        session
+                            .requestHitTestSource({space: referenceSpace})
+                            .then(function (source) {
+                                hitTestSource = source;
+                            });
+                    });
+
+                session.addEventListener("end", function () {
+                    hitTestSourceRequested = false;
+                    hitTestSource = null;
+                });
+
+                hitTestSourceRequested = true;
+            }
+
+            if (hitTestSource) {
+                const hitTestResults = frame.getHitTestResults(hitTestSource);
+
+                if (hitTestResults.length) {
+                    const hit = hitTestResults[0];
+
+                    if (!modelShowed) {
+                        reticle.visible = true;
+                    }
+                    reticle.matrix.fromArray(
+                        hit.getPose(referenceSpace).transform.matrix
+                    );
+                } else {
+                    reticle.visible = false;
+                }
+            }
+        }
+
+        renderer.render(scene, camera);
+
+        if (mixer) {
+            mixer.update(clock.getDelta());
+        }
+
+        if (modelShowed) {
+            const direction = camera.position.clone().sub(pivot.position.clone());
+            direction.y = 0;
+            pivot.lookAt(new THREE.Vector3().addVectors(pivot.position, direction));
+        }
+    }
+</script>
+</body>
+</html>
