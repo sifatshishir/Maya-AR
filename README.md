@@ -17,7 +17,7 @@ ssl_certificate_key  "path_to_your_projectt/sslCert/server.key";
 root "path_to_your_project";
 ```
 
-* Now the nginx configuration is done. Next step: got to `nginxServer` folder and double click the **nginx.exe** file.
+* Now the nginx configuration is done. Next step: go to `nginxServer` folder and double click the **nginx.exe** file.
 * Now go to your mobile browser, type: `https:your_ip:3000` (as we are using 3000 port in https)
 * Enjoy the project
 * **PS: Make sure your are under same network of the local machine where nginx in launched**
