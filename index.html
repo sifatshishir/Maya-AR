@@ -21,17 +21,20 @@
     import * as THREE from "./libs/three.module.js";
     import {ARButton} from "./libs/ARButton.js";
     import {GLTFLoader} from "./libs/GLTFLoader.js";
-    import {AnimationIndex} from "./helper.js";
+    import {AnimationController, AnimationIndex} from "./helper/animationController.js";
     import {RGBELoader} from "./libs/RGBELoader.js";
+    import {AudioController, AudioIndex, AudioType} from "./helper/audioController.js";
+
+    let animationController = undefined, audioController;
 
     let container;
     let camera, scene, renderer;
     let controller;
     let clock = new THREE.Clock();
-    let gltfScene, reticle, pivot,
-        model, audioSound,
+    let reticle, pivot,
+        model,
         modelShowed = false;
-    let mixer, action;
+    let mixer;
 
 
     let hitTestSource = null;
@@ -109,35 +112,11 @@
         pivot.attach(model);
     }
 
-    function loadAudio(path) {
-        let listener = new THREE.AudioListener();
-        camera.add(listener);
-
-        let sound = new THREE.Audio(listener);
-
-        const audioLoader = new THREE.AudioLoader();
-        audioLoader.load(path,
-            function (buffer) {
-                sound.setBuffer(buffer);
-                sound.setLoop(false);
-                sound.setVolume(0.5);
-                audioSound = sound;
-            },
-            (xhr) => {
-                console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
-            },
-            (error) => {
-                console.log(error);
-            }
-        );
-    }
-
     async function getModel(path) {
         const loader = new GLTFLoader();
 
         await loader.load(path,
             (gltf) => {
-                gltfScene = gltf;
                 model = gltf.scene.children[0];
 
                 model.scale.x = 0.005;
@@ -160,13 +139,11 @@
                 });
 
                 console.log(gltf);
-                mixer = new THREE.AnimationMixer(model);
-                action = mixer.clipAction(gltf.animations[AnimationIndex.EVENT01]);
-                action.clampWhenFinished = true;
-                action.setLoop(THREE.LoopOnce);
-                action.play();
 
-                //loadModel();
+                mixer = new THREE.AnimationMixer(model);
+
+                animationController = new AnimationController(gltf, mixer);
+                animationController.play(AnimationIndex.EVENT01);
 
                 //createPlanes();
 
@@ -200,16 +177,6 @@
         camera.add(plane);
         //alert('planeCreated');
 
-    }
-
-    function playAnimation(index) {
-        if (action) {
-            action.reset();
-        }
-        action = mixer.clipAction(gltfScene.animations[index]);
-        action.clampWhenFinished = true;
-        action.setLoop(THREE.LoopOnce);
-        action.play();
     }
 
     function init() {
@@ -247,7 +214,9 @@
 
         getModel(assetPath + '/' + 'maya_sq_01_03.glb');
 
-        loadAudio(assetPath + '/' + 'event01.wav');
+        let listener = new THREE.AudioListener();
+        camera.add(listener);
+        audioController = new AudioController(AudioType.NON_POSITIONAL, assetPath + '/' + 'event01.wav', listener, AudioIndex.EVENT01);
 
         //
 
@@ -299,17 +268,14 @@
         const intersects = raycaster.intersectObjects(scene.children, true);
 
         if (intersects.length > 0) {
-            playAnimation(AnimationIndex.EVENT01);
-
-            audioSound.setLoop(false);
-            audioSound.play();
+            animationController.play(AnimationIndex.EVENT01);
+            audioController.play(AudioIndex.EVENT01);
         }
     }
 
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
@@ -362,8 +328,8 @@
 
         renderer.render(scene, camera);
 
-        if (mixer) {
-            mixer.update(clock.getDelta());
+        if (animationController && animationController.mixer) {
+            animationController.mixer.update(clock.getDelta());
         }
 
         if (modelShowed) {
