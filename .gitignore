@@ -1,5 +1,3 @@
 
-.idea/workspace.xml
-nginxServer/logs/access.log
-nginxServer/logs/error.log
-nginxServer/logs/nginx.pid
+.idea/
+nginxServer/
