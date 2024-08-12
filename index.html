@@ -5,17 +5,20 @@
     <meta charset="utf-8"/>
     <meta
             name="viewport"
-            content="width=device-width, initial-scale=1.0, user-scalable=no"
+            content="width=device-width, initial-scale=1"
     />
     <link type="text/css" rel="stylesheet" href="css/main.css"/>
-
-
+    <script src="libs/jquery-min.js"></script>
 </head>
 <body>
 <text>
-    Maya<br/><br/>
+    <br><br><br><br><br><br>
+    <p style="color: #ff5b5b; font: 37.3px sans-serif; font-weight: bolder;">MAJA,</p>
+    <p style="color: #ffffff; font: 23.5px sans-serif; font-style: italic;">eine der Frauen hinter</p>
+    <p style="color: #ddff0f; font: 25.7px sans-serif;">„MADE IN BANGLADESH"</p>
 </text>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/20.0.0/tween.umd.js"></script>
 
 <script type="module">
     import * as THREE from "./libs/three.module.js";
@@ -24,28 +27,36 @@
     import {AnimationController, AnimationIndex} from "./helper/animationController.js";
     import {RGBELoader} from "./libs/RGBELoader.js";
     import {AudioController, AudioIndex, AudioType} from "./helper/audioController.js";
+    import ThreeMeshUI from './libs/three-mesh-ui.module.js';
+    import {EventController, EventName} from "./events/eventController.js";
+    import {FBXLoader} from "./libs/FBXLoader.js";
+    import {PromptButton} from "./helper/buttons/promptButton.js";
+    import {VideoButton} from "./helper/buttons/videoButton.js";
+    import {DressButton, DressTypeEnum} from "./helper/buttons/dressButton.js";
+    import {DressChooserButton} from "./helper/buttons/dressChooserButton.js";
+    import {VideoInitButton} from "./helper/buttons/videoInitButton.js";
+    import {VideoController} from "./helper/videoController.js";
 
-    let animationController = undefined, audioController;
+    let animationController = undefined, audioController, eventController;
 
     let container;
+    let clickDone = false;
     let camera, scene, renderer;
     let controller;
     let clock = new THREE.Clock();
-    let reticle, pivot,
-        model,
-        modelShowed = false;
+    let reticle, pivot, modelShowed = false;
     let mixer;
-
+    let raycaster, clickMouse;
 
     let hitTestSource = null;
     let hitTestSourceRequested = false;
-
+    window.backgroundAudioDone = false;
     const assetPath = 'resources';
-    window.addEventListener("touchstart", (event) => {
-        event.preventDefault();
-        //alert(event.touches[0].clientX + ' ' + event.touches[0].clientY);
-        setPickPosition(event.touches[0]);
-    });
+
+    window.currentEventName = '';
+    let audioContext;
+
+    let promptButton, videoButton, dressButton, dressChooserButton, videoInitButton;
 
     function addDetails() {
         // Load environment map
@@ -62,7 +73,7 @@
             });
 
 
-        model.traverse(child => {
+        window.model.traverse(child => {
             if (child.isMesh) {
                 child.material.envMap = scene.environment;
                 child.material.needsUpdate = true;
@@ -75,13 +86,12 @@
         });
 
 
-
         // Assuming your floor is a PlaneGeometry and stored in a variable floor
         const floorGeometry = new THREE.PlaneGeometry(200, 200);
-        const floorMaterial = new THREE.ShadowMaterial({ opacity: 0.2 });
+        const floorMaterial = new THREE.ShadowMaterial({opacity: 0.2});
 
         let floor = new THREE.Mesh(floorGeometry, floorMaterial);
-
+        floor.name = 'floor';
 
         floor.position.setFromMatrixPosition(reticle.matrix);
 
@@ -93,59 +103,145 @@
     init();
 
     function loadModel() {
-        if (!model) {
+        if (!window.model) {
             return;
         }
 
-        model.position.setFromMatrixPosition(reticle.matrix);
+        window.model.position.setFromMatrixPosition(reticle.matrix);
 
-
-        //model.position.set(0, -1, -6);
+        modelShowed = true;
+        //window.model.position.set(0, -1, -6);
         addDetails();
-        scene.add(model);
-        console.log(model);
+        scene.add(window.model);
+        console.log(window.model);
 
         pivot = new THREE.Object3D();
-        pivot.position.copy(model.position);
+        pivot.position.copy(window.model.position);
         pivot.updateMatrix();
         scene.add(pivot);
-        pivot.attach(model);
+        pivot.attach(window.model);
     }
 
     async function getModel(path) {
         const loader = new GLTFLoader();
-
+        const l = new FBXLoader();
         await loader.load(path,
             (gltf) => {
-                model = gltf.scene.children[0];
+                window.model = gltf.scene.children[0];
+                //window.model = gltf;
 
-                model.scale.x = 0.005;
-                model.scale.x = 0.005;
-                model.scale.x = 0.005;
-                model.children[0].traverse(child => {
-                    // if (child.geometry) {
-                    //     let box = new THREE.Box3();
-                    //     for (let i = 0; i < child.geometry.attributes.position.count; i += 3) {
-                    //         box.expandByPoint(new THREE.Vector3(child.geometry.attributes.position[i],
-                    //             child.geometry.attributes.position[i + 1],
-                    //             child.geometry.attributes.position[i + 2]))
-                    //     }
-                    //
-                    //     child.geometry.boundingBox = box;
-                    //     box.getBoundingSphere(child.geometry.boundingSphere);
-                    // }
+                window.model.scale.x = 0.005;
+                window.model.scale.y = 0.005;
+                window.model.scale.z = 0.005;
+                // window.model.children[0].traverse(child => {
+                //     // if (child.geometry) {
+                //     //     let box = new THREE.Box3();
+                //     //     for (let i = 0; i < child.geometry.attributes.position.count; i += 3) {
+                //     //         box.expandByPoint(new THREE.Vector3(child.geometry.attributes.position[i],
+                //     //             child.geometry.attributes.position[i + 1],
+                //     //             child.geometry.attributes.position[i + 2]))
+                //     //     }
+                //     //
+                //     //     child.geometry.boundingBox = box;
+                //     //     box.getBoundingSphere(child.geometry.boundingSphere);
+                //     // }
+                //
+                //     child.frustumCulled = false;
+                // });
 
-                    child.frustumCulled = false;
-                });
+
+                dressButton.updateDress(DressTypeEnum.SALWAR_KAMIJ);
 
                 console.log(gltf);
 
-                mixer = new THREE.AnimationMixer(model);
+                mixer = new THREE.AnimationMixer(window.model);
+
+                window.model.animations.forEach(clip => {
+                    console.log('duration: ' + clip.duration);
+                });
 
                 animationController = new AnimationController(gltf, mixer);
-                animationController.play(AnimationIndex.EVENT01);
+                animationController.play(AnimationIndex.EVENT02);
 
-                //createPlanes();
+
+                //loadModel();
+
+                eventController = new EventController(animationController, audioController, camera);
+
+                window.eventController = eventController;
+                eventController.addEvent({
+                    eventName: EventName.EVENT01,
+                    animationIndex: AnimationIndex.EVENT01,
+                    audioIndex: AudioIndex.EVENT01,
+                    animationFinishCallback: function () {
+                        eventController.play(EventName.EVENT02);
+                    },
+                    subtitleData: [
+                        {
+                            text: 'Hallo, endlich haben wir uns getroffen!',
+                            duration: 4000,
+                        },
+                        {
+                            text: 'Hast du schon ein Kleid gekauft?',
+                            duration: 4000
+                        }
+                    ]
+                });
+
+                eventController.addEvent({
+                    eventName: EventName.EVENT02,
+                    animationIndex: AnimationIndex.EVENT02,
+                    buttonContainer: promptButton.buttonContainer,
+                    containerPosition: new THREE.Vector3(-0.4, -0.9, -2),
+                    selectionState: 'event02'
+                });
+
+                eventController.addEvent({
+                    eventName: EventName.EVENT03,
+                    animationIndex: AnimationIndex.EVENT03,
+                    audioIndex: AudioIndex.EVENT03,
+                    buttonContainer: dressChooserButton.buttonContainer,
+                    buttonContainerTimer: 14000,
+                    containerPosition: new THREE.Vector3(0, -0.8, -2),
+                    selectionState: 'event03',
+                    subtitleData: [
+                        {
+                            text: 'Weißt du, dass ich solche Kleider immer nähe?',
+                            duration: 6000,
+                        },
+                        {
+                            text: 'Aber ich hatte nie die Gelegenheit, selbst ein so schönes Kleid zu tragen',
+                            duration: 5000
+                        },
+                        {
+                            text: 'Kannst du ein Kleid für mich auswählen?',
+                            duration: 4000
+                        }
+                    ]
+                });
+
+                eventController.addEvent({
+                    eventName: EventName.EVENT05,
+                    animationIndex: AnimationIndex.EVENT02, //idle
+                    buttonContainer: dressButton.buttonContainer,
+                    containerPosition: new THREE.Vector3(0, -1, -2),
+                    selectionState: 'event05',
+                });
+
+                eventController.addEvent({
+                    eventName: EventName.EVENT06,
+                    animationIndex: AnimationIndex.EVENT02, //idle
+                    buttonContainer: videoInitButton.buttonContainer,
+                    containerPosition: new THREE.Vector3(0, -1, -2),
+                    selectionState: 'event06',
+                });
+
+                eventController.addEvent({
+                    eventName: EventName.EVENT07,
+                    selectionState: 'event07',
+                })
+
+                //eventController.play(EventName.EVENT01);
 
             },
             (xhr) => {
@@ -167,19 +263,26 @@
         return marker;
     }
 
+    let planeMesh;
+
     function createPlanes() {
-        const geometry = new THREE.PlaneGeometry(1, 1);
+        const geometry = new THREE.PlaneGeometry(0.4, 0.2);
         const material = new THREE.MeshBasicMaterial({color: 0xffff00, side: THREE.DoubleSide});
-        const plane = new THREE.Mesh(geometry, material);
-        plane.position.x = -3;
-        plane.position.y = -4;
-        plane.position.z = -10;
-        camera.add(plane);
+        planeMesh = new THREE.Mesh(geometry, material);
+
+
+        planeMesh.position.set(-0.03, -0.1, -0.2);
+        planeMesh.scale.set(0.1, 0.1, 0.1);
+        planeMesh.name = 'plane';
+        //cameraContainer.add(planeMesh);
+        //camera.add(planeMesh);
         //alert('planeCreated');
 
     }
 
-    function init() {
+    async function init() {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
         container = document.createElement("div");
         document.body.appendChild(container);
 
@@ -188,37 +291,32 @@
         camera = new THREE.PerspectiveCamera(
             70,
             window.innerWidth / window.innerHeight,
-            0.001,
-            200
+            0.1,
+            1000
         );
 
+        window.camera = camera;
+
+        //camera.position.z = 2;
+        //camera.initialPixelRatio = window.devicePixelRatio;
+
         scene.add(camera);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
 
-        const light = new THREE.AmbientLight(0xffffff, 0.7);
-        scene.add(light);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 10, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 500;
+        directionalLight.shadow.camera.left = -10;
+        directionalLight.shadow.camera.right = 10;
+        directionalLight.shadow.camera.top = 10;
+        directionalLight.shadow.camera.bottom = -10;
 
-
-        const hlight = new THREE.DirectionalLight(0xffffff, 1);
-        hlight.position.set(10, 10, 10);
-        hlight.castShadow = true;
-        hlight.shadow.mapSize.width = 1024;
-        hlight.shadow.mapSize.height = 1024;
-        hlight.shadow.camera.near = 0.5;
-        hlight.shadow.camera.far = 500;
-        hlight.shadow.camera.left = -10;
-        hlight.shadow.camera.right = 10;
-        hlight.shadow.camera.top = 10;
-        hlight.shadow.camera.bottom = -10;
-
-        scene.add(hlight);
-
-        getModel(assetPath + '/' + 'maya_sq_01_03.glb');
-
-        let listener = new THREE.AudioListener();
-        camera.add(listener);
-        audioController = new AudioController(AudioType.NON_POSITIONAL, assetPath + '/' + 'event01.wav', listener, AudioIndex.EVENT01);
-
-        //
+        scene.add(directionalLight);
 
         renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -231,19 +329,55 @@
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        //
+
+        let listener = new THREE.AudioListener();
+        camera.add(listener);
+        audioController = new AudioController(listener);
+
+        audioController.load(AudioType.NON_POSITIONAL, assetPath + '/' + 'event01.wav', AudioIndex.EVENT01);
+        audioController.load(AudioType.NON_POSITIONAL, assetPath + '/' + 'event02.wav', AudioIndex.EVENT03);
+        audioController.load(AudioType.NON_POSITIONAL, assetPath + '/' + 'backgroundAudio.mp3', AudioIndex.BACKGROUND);
+
+        await new Promise(r => setTimeout(r, 2000));
+
+
+        promptButton = new PromptButton();
+        await promptButton.create();
+
+        videoButton = new VideoButton();
+        await videoButton.create();
+
+        dressChooserButton = new DressChooserButton();
+        await dressChooserButton.create();
+
+        dressButton = new DressButton();
+        await dressButton.create();
+
+        videoInitButton = new VideoInitButton();
+        await videoInitButton.create();
+
+        await getModel(assetPath + '/' + 'model.glb');
+
+
+        window.videoController = new VideoController(assetPath + '/' + 'sample_video.mp4');
+
 
         document.body.appendChild(
             ARButton.createButton(renderer, {requiredFeatures: ["hit-test"]})
         );
 
         //
+        raycaster = new THREE.Raycaster();
+        clickMouse = new THREE.Vector2();
 
         function onSelect() {
             if (reticle.visible) {
                 loadModel();
                 reticle.visible = false;
-                modelShowed = true;
+
+
+                window.addEventListener('touchstart', (event) => setPickPosition(event.touches[0]));
+                window.addEventListener('click', (event) => checkIntersection(event));
             }
         }
 
@@ -255,21 +389,67 @@
         scene.add(reticle);
 
         window.addEventListener("resize", onWindowResize);
+
+        //createPlanes();
+
+    }
+
+    // window.addEventListener("click", (event) => {
+    //     event.preventDefault();
+    //     //alert(event.touches[0].clientX + ' ' + event.touches[0].clientY);
+    //     event.touches = [event];
+    //     setPickPosition(event);
+    // });
+    function getCanvasRelativePosition(event) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        return {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top
+        };
     }
 
     function setPickPosition(event) {
+        audioController.play(AudioIndex.BACKGROUND, true);
+        const getCurrentContainer = (eventName) => {
+            switch (eventName) {
+                case EventName.EVENT02:
+                    return promptButton;
+                case EventName.EVENT03:
+                    return dressChooserButton;
+                case EventName.EVENT05:
+                    return dressButton;
+                case EventName.EVENT06:
+                    return videoInitButton;
+                default:
+                    return {};
+            }
+        };
+
         let pickPosition = new THREE.Vector2();
-        pickPosition.x = (event.clientX / window.innerWidth) * 2 - 1;
-        pickPosition.y = (event.clientY / window.innerHeight) * -2 + 1; // note we flip Y
+        const pos = getCanvasRelativePosition(event);
+        pickPosition.x = (pos.x / window.innerWidth) * 2 - 1;
+        pickPosition.y = (pos.y / window.innerHeight) * -2 + 1; // note we flip Y
 
         let raycaster = new THREE.Raycaster();
 
+        camera.updateProjectionMatrix();
         raycaster.setFromCamera(pickPosition, camera);
-        const intersects = raycaster.intersectObjects(scene.children, true);
 
-        if (intersects.length > 0) {
-            animationController.play(AnimationIndex.EVENT01);
-            audioController.play(AudioIndex.EVENT01);
+        let intersects = [];
+        if (!clickDone) {
+            intersects = raycaster.intersectObjects([window.model], true);
+            if (intersects.length > 0) {
+                eventController.play(EventName.EVENT01);
+                clickDone = true;
+            }
+        } else {
+            let controller = getCurrentContainer(window.currentEventName);
+            intersects = raycaster.intersectObjects([controller.buttonContainer], true);
+
+            if (intersects.length > 0) {
+                const intersectedObject = intersects[0].object;
+                controller.setState(intersectedObject);
+            }
         }
     }
 
@@ -289,12 +469,11 @@
                 alert(error);
             }
 
+
             if (hitTestSourceRequested === false) {
-                session
-                    .requestReferenceSpace("viewer")
+                session.requestReferenceSpace("viewer")
                     .then(function (referenceSpace) {
-                        session
-                            .requestHitTestSource({space: referenceSpace})
+                        session.requestHitTestSource({space: referenceSpace})
                             .then(function (source) {
                                 hitTestSource = source;
                             });
@@ -336,6 +515,20 @@
             const direction = camera.position.clone().sub(pivot.position.clone());
             direction.y = 0;
             pivot.lookAt(new THREE.Vector3().addVectors(pivot.position, direction));
+        }
+
+        ThreeMeshUI.update();
+
+        if (audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                if (audioController && !window.backgroundAudioDone) {
+                    audioController.play(AudioIndex.BACKGROUND, true);
+                }
+            });
+        }
+
+        if (window.videoController) {
+            window.videoController.update();
         }
     }
 </script>

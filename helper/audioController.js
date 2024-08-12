@@ -6,32 +6,24 @@ const AudioType = {
 };
 
 const AudioIndex = {
-    EVENT01: 0,
-    EVENT02: 1,
-    EVENT03: 2
+    BACKGROUND: 0,
+    EVENT01: 1,
+    EVENT02: 2,
+    EVENT03: 3
 };
 
 const AudioDataMap = {};
 
 class AudioController {
-    type;
-    source;
     listener;
-    index;
 
-    constructor(type, source, listener, index) {
-        this.type = type;
-        this.source = source;
+    constructor(listener) {
         this.listener = listener;
-        this.index = index;
-
-        this.load(source);
     }
 
-    load() {
-        let self = this;
+    load(type, source, index) {
         let sound;
-        switch (this.type) {
+        switch (type) {
             case AudioType.POSITIONAL:
                 sound = new THREE.PositionalAudio(this.listener);
                 sound.setRefDistance(20);
@@ -43,13 +35,13 @@ class AudioController {
 
         const audioLoader = new THREE.AudioLoader();
 
-        audioLoader.load(this.source,
+        audioLoader.load(source,
             function (buffer) {
                 sound.setBuffer(buffer);
                 sound.setLoop(false);
                 sound.setVolume(0.5);
 
-                AudioDataMap[self.index] = sound;
+                AudioDataMap[index] = sound;
             },
             (xhr) => {
                 console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
@@ -60,9 +52,20 @@ class AudioController {
         );
     }
 
-    play(audioIndex) {
-        AudioDataMap[audioIndex].setLoop(false);
-        AudioDataMap[audioIndex].play();
+    play(audioIndex, loop = false) {
+        if (AudioDataMap[audioIndex] && !AudioDataMap[audioIndex].isPlaying) {
+            AudioDataMap[audioIndex].setLoop(loop);
+            AudioDataMap[audioIndex].play();
+            if (audioIndex === AudioIndex.BACKGROUND) {
+                window.backgroundAudioDone = true;
+            }
+        }
+    }
+
+    setVolume(audioIndex, value) {
+        if (AudioDataMap[audioIndex]) {
+            AudioDataMap[audioIndex].setVolume(value);
+        }
     }
 }
 
