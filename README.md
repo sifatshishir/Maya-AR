@@ -21,3 +21,6 @@ root "path_to_your_project";
 * Now go to your mobile browser, type: `https:your_ip:3000` (as we are using 3000 port in https)
 * Enjoy the project
 * **PS: Make sure your are under same network of the local machine where nginx in launched**
+
+* Download resources from here: [resources](https://drive.google.com/file/d/1HHOIQZmNoNUMuksiH3dd-HljpIUvOABv/view?usp=sharing)
+* Paste the resources folder inside the project
