@@ -9,6 +9,11 @@ const EventName = {
     EVENT06: 'event06',
     EVENT07: 'event07',
     EVENT08: 'event08',
+    EVENT09: 'event09',
+    EVENT10: 'event10',
+    EVENT11: 'event11',
+    EVENT12: 'event12',
+    EVENT13: 'event13',
 };
 
 import {VrMessagePriorityEnum} from "../libs/ARSubtitle/ARSubtitleLiterals.js";
@@ -20,7 +25,7 @@ class EventController {
     audioController;
     selectionState;
 
-    constructor (animationController, audioController, camera) {
+    constructor(animationController, audioController, camera) {
         this.animationController = animationController;
         this.audioController = audioController;
         this.camera = camera;
@@ -28,10 +33,12 @@ class EventController {
         this.arSubtitleController = new ARSubtitleController();
     }
 
-    addEvent({eventName, animationIndex, audioIndex = undefined,
+    addEvent({
+                 eventName, animationIndex = 1, audioIndex = undefined,
                  subtitleData = undefined, buttonContainer = undefined,
                  containerPosition, selectionState = undefined, animationFinishCallback,
-             buttonContainerTimer = 0}) {
+                 buttonContainerTimer = 0
+             }) {
         this.events.push({
             eventName: eventName,
             animationIndex: animationIndex,
@@ -46,11 +53,42 @@ class EventController {
     }
 
     async play(eventName) {
-        if (eventName === EventName.EVENT07) {
+        window.currentEventName = eventName;
+
+        if (eventName === EventName.EVENT08) {
             this.audioController.setVolume(AudioIndex.BACKGROUND, 0.01);
             window.model.visible = false;
             window.videoController.show(true);
             window.videoController.play();
+        }
+
+        if (eventName === EventName.EVENT09) {
+            this.audioController.setVolume(AudioIndex.BACKGROUND, 0.5);
+        }
+
+        if (eventName === EventName.EVENT10) {
+            this.audioController.setVolume(AudioIndex.BACKGROUND, 0.01);
+            this.audioController.setVolume(AudioIndex.PANORAMIC_IMAGE, 0.5);
+            window.model.visible = false;
+            window.imageController.show(true);
+
+            const container = window.panoramicVideoInitButton.get();
+
+            container.position.set(-0.3, -1, -2);
+            this.camera.add(container);
+        }
+        if (eventName === EventName.EVENT11) {
+            this.audioController.setVolume(AudioIndex.BACKGROUND, 0.5);
+            this.audioController.setVolume(AudioIndex.PANORAMIC_IMAGE, 0);
+        }
+
+        if (eventName === EventName.EVENT12) {
+            this.audioController.setVolume(AudioIndex.BACKGROUND, 0);
+            window.panoramicVideoController.show(true);
+        }
+
+        if (eventName === EventName.EVENT13) {
+            window.model.visible = true;
         }
 
         this.selectionState = undefined;
@@ -60,8 +98,10 @@ class EventController {
             return;
         }
 
-        window.currentEventName = eventName;
-        this.animationController.play(event.animationIndex, event.animationFinishCallback);
+        if (event.animationIndex !== undefined) {
+            this.animationController.play(event.animationIndex, event.animationFinishCallback);
+        }
+
         if (event.audioIndex !== undefined) {
             this.audioController.play(event.audioIndex);
         }

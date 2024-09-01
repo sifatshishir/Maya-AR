@@ -26,15 +26,26 @@ class VideoController {
         this.plane = new THREE.Mesh(geometry, material);
 
         this.plane.position.set(0, 0, -8);
-        window.camera.add(this.plane);
+        window.scene.add(this.plane);
         this.plane.visible = false;
     }
 
     show(visible = true) {
-        this.plane.visible = visible;
+
+        // Calculate the position directly in front of the camera
+        const cameraDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(window.camera.quaternion);
+        const distance = 8; // Distance in front of the camera
+        this.plane.position.copy(window.camera.position).add(cameraDirection.multiplyScalar(distance));
+        this.plane.lookAt(window.camera.position); // Make sure the plane faces the camera
+        this.plane.visible = visible; // Show the plane
+
+        window.videoShowed = visible;
     }
 
     play() {
+        if (this.video.currentTime >= this.video.duration - 0.1) {
+            this.video.currentTime = 0;
+        }
         if (this.video.paused) {
             this.video.play();
         }
@@ -46,16 +57,16 @@ class VideoController {
         }
     }
 
-    forward(seconds = 5) {
+    forward(seconds = 2) {
         this.video.currentTime += seconds;
     }
 
-    backward(seconds = 5) {
+    backward(seconds = 2) {
         this.video.currentTime -= Math.min(0, seconds);
     }
 
     update() {
-        if (this.video && this.video.readyState >= this.video.HAVE_CURRENT_DATA) {
+        if (this.video && this.video.readyState >= this.video.HAVE_CURRENT_DATA && !this.video.paused) {
             this.videoTexture.needsUpdate = true;
         }
     }

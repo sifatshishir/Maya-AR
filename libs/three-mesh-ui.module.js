@@ -2683,7 +2683,7 @@ function MeshUIComponent(Base) {
                 return;
             }
 
-            if (state === this.currentState) return;
+            //if (state === this.currentState) return;
 
             this.currentState = state;
 

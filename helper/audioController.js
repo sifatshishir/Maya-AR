@@ -7,9 +7,12 @@ const AudioType = {
 
 const AudioIndex = {
     BACKGROUND: 0,
+    PANORAMIC_IMAGE: 10,
     EVENT01: 1,
-    EVENT02: 2,
-    EVENT03: 3
+    EVENT03: 3,
+    EVENT04: 4,
+    EVENT06_07: 6,
+    EVENT11: 11,
 };
 
 const AudioDataMap = {};

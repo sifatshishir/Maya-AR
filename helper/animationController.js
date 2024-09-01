@@ -1,14 +1,14 @@
 import * as THREE from "../libs/three.module.js";
 
 const AnimationIndex = {
-    IDLE01: 11,
-    IDLE02: 21,
-    IDLE03: 31,
     EVENT01: 0,
     EVENT02: 1,
     EVENT03: 2,
     EVENT04: 3,
-    EVENT05: 4
+    EVENT05_V1: 4,
+    EVENT05_V2: 5,
+    EVENT06_07: 6,
+    EVENT11: 7,
 };
 
 class AnimationController {
@@ -44,6 +44,8 @@ class AnimationController {
         const isIdle = (index) => {
             switch (index) {
                 case AnimationIndex.EVENT02:
+                case AnimationIndex.EVENT05_V1:
+                case AnimationIndex.EVENT05_V2:
                     return true;
                 default:
                     return false;

@@ -25,15 +25,15 @@ class DressButton extends Button {
 
     setState(object) {
         if (object === this.dress1 || object.parent === this.dress1) {
-            this.dress1.setState(eventController.selectionState);
+            this.dress1.setState(window.eventController.selectionState);
         }
 
         if (object === this.dress2 || object.parent === this.dress2) {
-            this.dress2.setState(eventController.selectionState);
+            this.dress2.setState(window.eventController.selectionState);
         }
 
         if (object === this.dress3 || object.parent === this.dress3) {
-            this.dress3.setState(eventController.selectionState);
+            this.dress3.setState(window.eventController.selectionState);
         }
     }
 
@@ -71,7 +71,7 @@ class DressButton extends Button {
         });
 
         const buttonOptions = {
-            width: 0.5,
+            width: 0.7,
             height: 0.15,
             justifyContent: 'center',
             alignItems: 'center',
@@ -94,11 +94,11 @@ class DressButton extends Button {
         );
 
         this.dress2.add(
-            new ThreeMeshUI.Text({content: 'Shirt Pant'})
+            new ThreeMeshUI.Text({content: 'Zweiteiler: Hose und Top'})
         );
 
         this.dress3.add(
-            new ThreeMeshUI.Text({content: 'Western New'})
+            new ThreeMeshUI.Text({content: 'Bodycon'})
         );
 
         const selectedAttributes = {
@@ -122,7 +122,7 @@ class DressButton extends Button {
             onSet: () => {
                 window.camera.remove(this.buttonContainer);
                 this.updateDress(DressTypeEnum.SHIRT_PANT);
-                //window.eventController.play(EventName.EVENT05);
+                window.eventController.play(EventName.EVENT06);
             }
         });
 
@@ -136,7 +136,7 @@ class DressButton extends Button {
             }
         });
 
-        this.buttonContainer.add(this.dress1);
+        //this.buttonContainer.add(this.dress1);
         this.buttonContainer.add(this.dress2);
         this.buttonContainer.add(this.dress3);
 

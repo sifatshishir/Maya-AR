@@ -18,10 +18,10 @@ class PromptButton extends Button {
 
     setState(object) {
         if (object === this.buttonYes || object.parent === this.buttonYes) {
-            this.buttonYes.setState(eventController.selectionState);
+            this.buttonYes.setState(window.eventController.selectionState);
         }
         if (object === this.buttonNo || object.parent === this.buttonNo) {
-            this.buttonNo.setState(eventController.selectionState);
+            this.buttonNo.setState(window.eventController.selectionState);
         }
     }
 
@@ -99,7 +99,7 @@ class PromptButton extends Button {
             attributes: selectedAttributes,
             onSet: () => {
                 window.camera.remove(this.buttonContainer);
-                window.eventController.play(EventName.EVENT03);
+                window.eventController.play(EventName.EVENT04);
             }
         });
 
