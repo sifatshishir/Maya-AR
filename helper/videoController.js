@@ -22,7 +22,7 @@ class VideoController {
         this.videoTexture = new THREE.VideoTexture(this.video);
         const material = new THREE.MeshBasicMaterial({map: this.videoTexture});
 
-        const geometry = new THREE.PlaneGeometry(4, 3.5);
+        const geometry = new THREE.PlaneGeometry(6.22, 3.5);
         this.plane = new THREE.Mesh(geometry, material);
 
         this.plane.position.set(0, 0, -8);

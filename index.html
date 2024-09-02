@@ -276,8 +276,12 @@
                             duration: 3000
                         },
                         {
-                            text: 'Es gibt einige Dinge, die sich an meinem Arbeitsplatz ändern müssen',
-                            duration: 6000
+                            text: 'Es gibt einige Dinge,',
+                            duration: 2000
+                        },
+                        {
+                            text: 'die sich an meinem Arbeitsplatz ändern müssen',
+                            duration: 4000
                         },
                         {
                             text: 'Wenn du mir hilfst, solltest du etwas wissen.',
@@ -301,21 +305,34 @@
                     eventName: EventName.EVENT09,
                     selectionState: 'event09',
                     buttonContainer: panoramicInitButton.get(),
-                    containerPosition: new THREE.Vector3(0.26, -0.9, -2)
+                    containerPosition: new THREE.Vector3(0, 0, -2)
                 });
 
                 eventController.addEvent({
                     eventName: EventName.EVENT10,
                     selectionState: 'event10',
                     buttonContainer: imageButton.get(),
-                    containerPosition: new THREE.Vector3(0.3, -0.9, -2)
+                    containerPosition: new THREE.Vector3(0.4, -0.9, -2)
                 });
 
                 eventController.addEvent({
                     eventName: EventName.EVENT11,
                     selectionState: 'event11',
                     buttonContainer: choices.get(),
-                    containerPosition: new THREE.Vector3(0, 0.2, -2)
+                    buttonContainerTimer: 15000,
+                    containerPosition: new THREE.Vector3(0, 0.2, -2),
+                    subtitleData: [
+                        {
+                            text: 'wenn du Maya helfen willst,',
+                            duration: 5000,
+                        },
+                        {
+                            text: 'dann weise auf eine Sache hin, die geändert werden muss',
+                            duration: 10000,
+                        }
+                    ]
+            
+
                 });
 
                 eventController.addEvent({
