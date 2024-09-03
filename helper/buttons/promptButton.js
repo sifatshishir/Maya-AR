@@ -50,7 +50,7 @@ class PromptButton extends Button {
         // in order to write less code.
 
         const buttonOptions = {
-            width: 0.3,
+            width: 0.5,
             height: 0.15,
             justifyContent: 'center',
             alignItems: 'center',
