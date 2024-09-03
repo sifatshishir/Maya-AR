@@ -587,6 +587,9 @@
 
         let raycaster = new THREE.Raycaster();
 
+        raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+        raycaster.ray.direction.set(0, 0, -1).applyMatrix4(controller.matrixWorld);
+
         camera.updateProjectionMatrix();
         raycaster.setFromCamera(pickPosition, camera);
 
