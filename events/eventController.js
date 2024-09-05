@@ -67,7 +67,7 @@ class EventController {
         }
 
         if (eventName === EventName.EVENT10) {
-            this.audioController.setVolume(AudioIndex.BACKGROUND, 0.01);
+            this.audioController.setVolume(AudioIndex.BACKGROUND, 0);
             this.audioController.setVolume(AudioIndex.PANORAMIC_IMAGE, 0.5);
             window.model.visible = false;
             window.imageController.show(true);
@@ -83,8 +83,8 @@ class EventController {
         }
 
         if (eventName === EventName.EVENT12) {
-            this.audioController.setVolume(AudioIndex.BACKGROUND, 0);
-            window.panoramicVideoController.show(true);
+            //this.audioController.setVolume(AudioIndex.BACKGROUND, 0);
+            //window.panoramicVideoController.show(true);
         }
 
         if (eventName === EventName.EVENT13) {

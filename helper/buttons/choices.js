@@ -190,7 +190,7 @@ class Choices extends Button {
 
         this.setupButtonStates();
 
-        this.buttonContainer.add(this.videoButton, this.choice1, this.choice2, this.choice3, this.choice4, this.choice5);
+        this.buttonContainer.add(this.choice1, this.choice2, this.choice3, this.choice4, this.choice5);
         // this.choice3ontainer.position.set(0, -0.9, -2);
         // window.camera.add(this.choice3ontainer);
     }
